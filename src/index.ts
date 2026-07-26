@@ -21,8 +21,52 @@ import { Parser } from './parser/parser.js';
 import { Linter } from './linter/linter.js';
 import { ASTPrinter } from './formatter/printer.js';
 import { CompletionEngine } from './completion/completion.js';
+import { CompletionItem, SchemaMetadata } from './completion/completion.js';
 import { KEYWORDS } from './lexer/keywords.js';
 import { Diagnostic } from './linter/diagnostics.js';
+import { Statement } from './ast/types.js';
+import { ASTVisitor, ASTWalker } from './visitor/visitor.js';
+
+/** Parse SAS PROC SQL into an AST. Throws the first syntax error, if any. */
+export function parse(procSql: string): Statement[] {
+  return new Parser(procSql).parse(true);
+}
+
+/** Return syntax and static-analysis diagnostics without throwing. */
+export function lint(procSql: string): Diagnostic[] {
+  const parser = new Parser(procSql);
+  parser.parse();
+
+  const syntaxErrors: Diagnostic[] = parser.errors.map(err => ({
+    code: 'SYNTAX_ERROR',
+    message: err.message,
+    severity: 'Error' as const,
+    position: err.position,
+  }));
+
+  return [...syntaxErrors, ...new Linter().lint(procSql)];
+}
+
+/** Format SAS PROC SQL using the package's standard printer. */
+export function format(procSql: string): string {
+  return new ASTPrinter().print(parse(procSql));
+}
+
+/** Get completion suggestions at a zero-based character offset. */
+export function complete(
+  procSql: string,
+  cursorOffset: number,
+  schema?: SchemaMetadata,
+): CompletionItem[] {
+  return new CompletionEngine(schema).getCompletions(procSql, cursorOffset);
+}
+
+/** Visit every statement and expression in an AST. */
+export function visit(ast: Statement | Statement[], visitor: ASTVisitor): void {
+  const walker = new ASTWalker(visitor);
+  const statements = Array.isArray(ast) ? ast : [ast];
+  statements.forEach((statement) => walker.walkStatement(statement));
+}
 
 /**
  * High-level sql.js-like interface for SAS PROC SQL parsing, linting, formatting, and editor integration.
@@ -31,8 +75,8 @@ export const procsql = {
   /**
    * Parse SAS PROC SQL code into an AST.
    */
-  parse(code: string) {
-    const parser = new Parser(code);
+  parse(procSql: string) {
+    const parser = new Parser(procSql);
     const ast = parser.parse();
     return {
       ast,
@@ -41,10 +85,10 @@ export const procsql = {
   },
 
   /**
-   * Check if code is syntactically valid (returns boolean).
+   * Check whether PROC SQL is syntactically valid (returns boolean).
    */
-  validate(code: string): boolean {
-    const parser = new Parser(code);
+  validate(procSql: string): boolean {
+    const parser = new Parser(procSql);
     parser.parse();
     return parser.errors.length === 0;
   },
@@ -52,31 +96,15 @@ export const procsql = {
   /**
    * Run syntax error checking and static code linting rules.
    */
-  lint(code: string): Diagnostic[] {
-    const parser = new Parser(code);
-    parser.parse();
-    
-    const syntaxErrors: Diagnostic[] = parser.errors.map(err => ({
-      code: 'SYNTAX_ERROR',
-      message: err.message,
-      severity: 'Error' as const,
-      position: err.position,
-    }));
-
-    const linter = new Linter();
-    const linterRules = linter.lint(code);
-
-    return [...syntaxErrors, ...linterRules];
+  lint(procSql: string): Diagnostic[] {
+    return lint(procSql);
   },
 
   /**
    * Format SAS PROC SQL code into clean, standardized SQL.
    */
-  format(code: string): string {
-    const parser = new Parser(code);
-    const ast = parser.parse();
-    const printer = new ASTPrinter();
-    return printer.print(ast);
+  format(procSql: string): string {
+    return format(procSql);
   },
 
   /**
@@ -176,4 +204,3 @@ export const procsql = {
     }
   }
 };
-

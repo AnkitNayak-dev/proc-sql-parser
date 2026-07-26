@@ -1,6 +1,7 @@
 {
   "name": "proc-sql-parser",
   "version": "1.0.1",
+  "type": "module",
   "description": "A type-safe TypeScript lexer, parser, AST, and formatter for SAS PROC SQL statements.",
   "main": "dist/index.js",
   "module": "dist/index.js",

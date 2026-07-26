@@ -1,23 +1,53 @@
 # proc-sql-parser
 
-A zero-dependency, type-safe TypeScript **SAS PROC SQL Lexer, Parser, AST Generator, and Formatter**.
+A zero-dependency, type-safe TypeScript parser and toolkit for **SAS PROC SQL**.
 
 Supports standard ANSI SQL syntax + SAS PROC SQL extensions (including `PROC SQL ... QUIT;` blocks, PROC SQL options like `NOPRINT`, `OUTOBS=`, `FEEDBACK`, `CALCULATED` columns, macro variables `&var`, host variable bindings `INTO :var1 - :varN`, and SAS macro expressions).
 
 ---
 
-## 🚀 Usage for Developers (Library API)
-
-### 1. Installation
+## Quick Start
 
 ```bash
 npm install proc-sql-parser
 ```
 
-### 2. Parse PROC SQL Code into AST
+```ts
+import { parse } from 'proc-sql-parser';
+
+const ast = parse(`
+  PROC SQL;
+    SELECT name, salary
+    FROM employees
+    WHERE salary > 50000;
+  QUIT;
+`);
+
+console.log(ast);
+```
+
+`parse()` returns the AST and throws a syntax error for invalid input.
+
+## Library API
+
+The common API is intentionally small:
+
+```ts
+import { parse, lint, format, complete, visit } from 'proc-sql-parser';
+```
+
+| Function | Purpose |
+| --- | --- |
+| `parse(procSql)` | Parse SAS PROC SQL into an AST. |
+| `lint(procSql)` | Return PROC SQL syntax and lint diagnostics. |
+| `format(procSql)` | Return consistently formatted PROC SQL. |
+| `complete(procSql, offset, schema?)` | Return editor completion suggestions. |
+| `visit(ast, visitor)` | Traverse statements and expressions. |
+
+### Parse
 
 ```typescript
-import { Parser } from 'proc-sql-parser';
+import { parse } from 'proc-sql-parser';
 
 const sasCode = `
   PROC SQL NOPRINT OUTOBS=100;
@@ -28,23 +58,18 @@ const sasCode = `
   QUIT;
 `;
 
-// Parse into Abstract Syntax Tree (AST)
-const parser = new Parser(sasCode);
-const ast = parser.parse();
+const ast = parse(sasCode);
 
 console.log(JSON.stringify(ast, null, 2));
 ```
 
-### 3. Pretty-Print / Format PROC SQL Code
+### Format
 
 ```typescript
-import { Parser, ASTPrinter } from 'proc-sql-parser';
+import { format } from 'proc-sql-parser';
 
 const rawCode = `PROC SQL NOPRINT; SELECT a, b FROM mylib.data WHERE a > 10; QUIT;`;
-const ast = new Parser(rawCode).parse();
-
-const printer = new ASTPrinter();
-const formattedCode = printer.print(ast);
+const formattedCode = format(rawCode);
 
 console.log(formattedCode);
 /* Output:
@@ -54,15 +79,42 @@ QUIT;
 */
 ```
 
-### 4. Traverse AST with ASTWalker / Visitor
+### Lint
+
+```ts
+import { lint } from 'proc-sql-parser';
+
+const diagnostics = lint('PROC SQL; SELECT FROM employees; QUIT;');
+for (const diagnostic of diagnostics) {
+  console.log(`${diagnostic.severity}: ${diagnostic.message}`);
+}
+```
+
+### Complete
+
+```ts
+import { complete } from 'proc-sql-parser';
+
+const suggestions = complete('PROC SQL; SELECT  FROM employees;', 17);
+```
+
+Pass optional schema metadata to suggest known columns:
+
+```ts
+complete('SELECT e. FROM employees e;', 9, {
+  tables: { employees: ['id', 'name', 'salary'] },
+});
+```
+
+### Visit the AST
 
 ```typescript
-import { Parser, ASTWalker } from 'proc-sql-parser';
+import { parse, visit } from 'proc-sql-parser';
 
 const code = `SELECT name FROM class WHERE CALCULATED total > 100;`;
-const ast = new Parser(code).parse();
+const ast = parse(code);
 
-const walker = new ASTWalker({
+visit(ast, {
   visitSelectStatement(node) {
     console.log(`Found SELECT query with ${node.columns.length} column(s)`);
   },
@@ -72,29 +124,72 @@ const walker = new ASTWalker({
     }
   }
 });
-
-ast.forEach(stmt => walker.walkStatement(stmt));
 ```
+
+### Advanced API
+
+`Parser`, `Lexer`, `ASTPrinter`, `ASTWalker`, AST types, and other lower-level exports remain available when you need custom parsing or editor integration.
 
 ---
 
-## 🛠️ Usage for End Users (CLI Tool)
+## Monaco Editor Integration
+
+Add PROC SQL highlighting, completions, formatting, and diagnostics to a Monaco Editor in three steps.
+
+### 1. Install the packages
+
+```bash
+npm install monaco-editor proc-sql-parser
+```
+
+### 2. Add an editor container
+
+```html
+<div id="editor" style="height: 500px"></div>
+```
+
+### 3. Create and attach the editor
+
+```ts
+import * as monaco from 'monaco-editor';
+import { procsql } from 'proc-sql-parser';
+
+// Call once when the application starts. This registers the `procsql` language.
+procsql.monaco.setup(monaco);
+
+const editor = monaco.editor.create(document.getElementById('editor')!, {
+  value: `PROC SQL;
+  SELECT name, salary
+  FROM employees;
+QUIT;`,
+  language: 'procsql',
+  theme: 'vs-dark',
+  automaticLayout: true,
+});
+
+// Call once for each editor instance.
+procsql.monaco.attach(editor, monaco);
+```
+
+The integration provides keyword highlighting, completion suggestions, document formatting, and syntax/lint markers. Call `setup()` once per application and `attach()` for every PROC SQL editor you create.
+
+## Command-Line Interface
 
 You can run the CLI without installing any code directly using `npx`:
 
-### 1. Validate PROC SQL Syntax
+### Validate PROC SQL Syntax
 Check if a SAS file has valid PROC SQL syntax:
 ```bash
 npx proc-sql-parser validate script.sas
 ```
 
-### 2. Pretty Format PROC SQL Files
+### Format PROC SQL Files
 Format raw or messy PROC SQL code:
 ```bash
 npx proc-sql-parser format input.sas > output.sas
 ```
 
-### 3. Inspect AST as JSON
+### Inspect AST as JSON
 Export AST to JSON for data analysis or downstream tools:
 ```bash
 npx proc-sql-parser parse query.sas
@@ -102,7 +197,7 @@ npx proc-sql-parser parse query.sas
 
 ---
 
-## 💡 Key Features & Supported Syntax
+## Supported Syntax
 
 | Feature | Syntax Example |
 |---|---|
