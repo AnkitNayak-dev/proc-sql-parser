@@ -1,0 +1,34 @@
+{
+  "name": "proc-sql-parser",
+  "version": "1.0.0",
+  "description": "A type-safe TypeScript lexer, parser, AST, and formatter for SAS PROC SQL statements.",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "proc-sql-parser": "./dist/cli.js"
+  },
+  "license": "MIT",
+  "author": "Ankit Nayak <https://github.com/AnkitNayak-dev>",
+  "homepage": "https://github.com/AnkitNayak-dev/proc-sql-parser#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnkitNayak-dev/proc-sql-parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnkitNayak-dev/proc-sql-parser/issues"
+  },
+  "keywords": ["sas", "proc sql", "parser", "ast", "linter", "formatter", "monaco", "sql"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^5.3.3"
+  }
+}
