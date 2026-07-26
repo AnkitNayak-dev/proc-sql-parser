@@ -27,6 +27,8 @@ import { Diagnostic } from './linter/diagnostics.js';
 import { Statement } from './ast/types.js';
 import { ASTVisitor, ASTWalker } from './visitor/visitor.js';
 
+const enabledMonacoInstances = new WeakSet<object>();
+
 /** Parse SAS PROC SQL into an AST. Throws the first syntax error, if any. */
 export function parse(procSql: string): Statement[] {
   return new Parser(procSql).parse(true);
@@ -66,6 +68,31 @@ export function visit(ast: Statement | Statement[], visitor: ASTVisitor): void {
   const walker = new ASTWalker(visitor);
   const statements = Array.isArray(ast) ? ast : [ast];
   statements.forEach((statement) => walker.walkStatement(statement));
+}
+
+/**
+ * Register the `procsql` language with Monaco.
+ *
+ * Pass this directly to `@monaco-editor/react`'s `beforeMount` prop.
+ */
+export function enableProcSql(monacoInstance: any): void {
+  if (!monacoInstance || (typeof monacoInstance !== 'object' && typeof monacoInstance !== 'function')) {
+    throw new TypeError('enableProcSql requires a Monaco instance.');
+  }
+
+  if (enabledMonacoInstances.has(monacoInstance)) return;
+  procsql.monaco.setup(monacoInstance);
+  enabledMonacoInstances.add(monacoInstance);
+}
+
+/**
+ * Attach PROC SQL diagnostics to an editor.
+ *
+ * Pass this directly to `@monaco-editor/react`'s `onMount` prop.
+ */
+export function attachProcSql(editorInstance: any, monacoInstance: any): void {
+  enableProcSql(monacoInstance);
+  procsql.monaco.attach(editorInstance, monacoInstance);
 }
 
 /**

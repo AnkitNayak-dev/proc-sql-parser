@@ -173,6 +173,38 @@ procsql.monaco.attach(editor, monaco);
 
 The integration provides keyword highlighting, completion suggestions, document formatting, and syntax/lint markers. Call `setup()` once per application and `attach()` for every PROC SQL editor you create.
 
+### React
+
+With `@monaco-editor/react`, pass the provided helpers directly to the editor. No Monaco instance management is needed in your component.
+
+```tsx
+import { useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { attachProcSql, enableProcSql } from 'proc-sql-parser';
+
+export default function ProcSqlEditor() {
+  const [procSql, setProcSql] = useState('PROC SQL;\n  SELECT * FROM work.class;\nQUIT;');
+
+  return (
+    <Editor
+      height="500px"
+      language="procsql"
+      theme="vs-dark"
+      value={procSql}
+      beforeMount={enableProcSql}
+      onMount={attachProcSql}
+      onChange={(value) => setProcSql(value ?? '')}
+    />
+  );
+}
+```
+
+To add PROC SQL to a language selector, use:
+
+```html
+<option value="procsql">PROC SQL (SAS)</option>
+```
+
 ## Command-Line Interface
 
 You can run the CLI without installing any code directly using `npx`:
