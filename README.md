@@ -192,7 +192,7 @@ export default function ProcSqlEditor() {
       theme="vs-dark"
       value={procSql}
       beforeMount={enableProcSql}
-      onMount={attachProcSql}
+      onMount={(editor, monaco) => attachProcSql(editor, monaco, { warnings: false })}
       onChange={(value) => setProcSql(value ?? '')}
     />
   );

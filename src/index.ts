@@ -29,6 +29,10 @@ import { ASTVisitor, ASTWalker } from './visitor/visitor.js';
 
 const enabledMonacoInstances = new WeakSet<object>();
 
+export interface ProcSqlMonacoAttachOptions {
+  warnings?: boolean;
+}
+
 /** Parse SAS PROC SQL into an AST. Throws the first syntax error, if any. */
 export function parse(procSql: string): Statement[] {
   return new Parser(procSql).parse(true);
@@ -90,9 +94,13 @@ export function enableProcSql(monacoInstance: any): void {
  *
  * Pass this directly to `@monaco-editor/react`'s `onMount` prop.
  */
-export function attachProcSql(editorInstance: any, monacoInstance: any): void {
+export function attachProcSql(
+  editorInstance: any,
+  monacoInstance: any,
+  options: ProcSqlMonacoAttachOptions = {},
+): void {
   enableProcSql(monacoInstance);
-  procsql.monaco.attach(editorInstance, monacoInstance);
+  procsql.monaco.attach(editorInstance, monacoInstance, options);
 }
 
 /**
@@ -205,14 +213,23 @@ export const procsql = {
       });
     },
 
-    attach(editorInstance: any, monacoInstance: any) {
+    attach(
+      editorInstance: any,
+      monacoInstance: any,
+      options: ProcSqlMonacoAttachOptions = {},
+    ) {
+      const showWarnings = options.warnings !== false;
+
       const updateMarkers = () => {
         const model = editorInstance.getModel();
         if (!model) return;
         const code = model.getValue();
         const diagnostics = procsql.lint(code);
+        const visibleDiagnostics = showWarnings
+          ? diagnostics
+          : diagnostics.filter((d) => d.severity === 'Error');
 
-        const markers = diagnostics.map((d) => ({
+        const markers = visibleDiagnostics.map((d) => ({
           severity: d.severity === 'Error' 
             ? monacoInstance.MarkerSeverity.Error 
             : monacoInstance.MarkerSeverity.Warning,
