@@ -175,13 +175,41 @@ function parsePrimaryExpression(parser: Parser): Expression {
     const suffix = token.type === TokenType.DateTimeLiteral ? 'dt' : token.type === TokenType.TimeLiteral ? 't' : 'd';
 
     if (token.type === TokenType.DateLiteral) {
+      // Check if it looks like a datetime value with wrong suffix
+      if (token.value.includes(':')) {
+        throw new ParseError(
+          `Value '${token.value}' looks like a datetime. Use the 'dt' suffix instead of 'd': '${token.value}'dt`,
+          token.position,
+        );
+      }
+
       const dateRegex = /^\d{1,2}[A-Za-z]{3}\d{2,4}$/;
       const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
       const monthStr = token.value.replace(/^\d{1,2}/, '').replace(/\d{2,4}$/, '').toUpperCase();
       
-      if (!dateRegex.test(token.value) || !months.includes(monthStr)) {
+      if (!token.value || !dateRegex.test(token.value) || !months.includes(monthStr)) {
         throw new ParseError(
           `Invalid SAS date literal value '${token.value}'d. Month '${monthStr}' is invalid.`,
+          token.position,
+        );
+      }
+    }
+
+    if (token.type === TokenType.TimeLiteral) {
+      const timeRegex = /^(\d{1,2}):(\d{2}):(\d{2})$/;
+      const match = token.value.match(timeRegex);
+      if (!match) {
+        throw new ParseError(
+          `Invalid SAS time literal '${token.value}'t. Expected format 'HH:MM:SS't.`,
+          token.position,
+        );
+      }
+      const hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const seconds = parseInt(match[3], 10);
+      if (hours > 23 || minutes > 59 || seconds > 59) {
+        throw new ParseError(
+          `Invalid SAS time literal '${token.value}'t. Hours must be 0-23, minutes and seconds 0-59.`,
           token.position,
         );
       }
