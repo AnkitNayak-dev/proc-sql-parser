@@ -177,6 +177,8 @@ The integration provides keyword highlighting, completion suggestions, document 
 
 With `@monaco-editor/react`, pass the provided helpers directly to the editor. No Monaco instance management is needed in your component.
 
+#### Basic Usage (Default / Suppressing Warnings)
+
 ```tsx
 import { useState } from 'react';
 import Editor from '@monaco-editor/react';
@@ -195,6 +197,41 @@ export default function ProcSqlEditor() {
       onMount={(editor, monaco) => attachProcSql(editor, monaco, { warnings: false })}
       onChange={(value) => setProcSql(value ?? '')}
     />
+  );
+}
+```
+
+#### Advanced Usage (Live Error & Warning Counter)
+
+```tsx
+import { useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { attachProcSql, enableProcSql } from 'proc-sql-parser';
+
+export default function ProcSqlEditorWithCounter() {
+  const [procSql, setProcSql] = useState('PROC SQL;\n  SELECT * FROM work.class;\nQUIT;');
+  const [errorCount, setErrorCount] = useState(0);
+
+  return (
+    <div>
+      <div>Active Syntax Errors: {errorCount}</div>
+      <Editor
+        height="500px"
+        language="procsql"
+        theme="vs-dark"
+        value={procSql}
+        beforeMount={enableProcSql}
+        onMount={(editor, monaco) => {
+          const instance = attachProcSql(editor, monaco, {
+            warnings: false, // Turn off warning markers
+            onDiagnostics: () => {
+              setErrorCount(instance.getErrors().length);
+            },
+          });
+        }}
+        onChange={(value) => setProcSql(value ?? '')}
+      />
+    </div>
   );
 }
 ```
