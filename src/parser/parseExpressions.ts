@@ -173,6 +173,20 @@ function parsePrimaryExpression(parser: Parser): Expression {
   ) {
     parser.advance();
     const suffix = token.type === TokenType.DateTimeLiteral ? 'dt' : token.type === TokenType.TimeLiteral ? 't' : 'd';
+
+    if (token.type === TokenType.DateLiteral) {
+      const dateRegex = /^\d{1,2}[A-Za-z]{3}\d{2,4}$/;
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const monthStr = token.value.replace(/^\d{1,2}/, '').replace(/\d{2,4}$/, '').toUpperCase();
+      
+      if (!dateRegex.test(token.value) || !months.includes(monthStr)) {
+        throw new ParseError(
+          `Invalid SAS date literal value '${token.value}'d. Month '${monthStr}' is invalid.`,
+          token.position,
+        );
+      }
+    }
+
     return {
       type: 'LiteralExpr',
       value: token.value,

@@ -9,29 +9,6 @@ export interface LintRule {
   check(ast: Statement[], tokens: Token[]): Diagnostic[];
 }
 
-export const requireQuitRule: LintRule = {
-  id: 'PROC001',
-  name: 'RequireQuit',
-  check(ast: Statement[], tokens: Token[]): Diagnostic[] {
-    const diagnostics: Diagnostic[] = [];
-
-    // Check if raw tokens contain PROC SQL but no QUIT
-    const hasProc = tokens.some((t) => t.type === TokenType.Keyword && t.value.toUpperCase() === 'PROC');
-    const hasQuit = tokens.some((t) => t.type === TokenType.Keyword && t.value.toUpperCase() === 'QUIT');
-
-    if (hasProc && !hasQuit) {
-      const procToken = tokens.find((t) => t.type === TokenType.Keyword && t.value.toUpperCase() === 'PROC');
-      diagnostics.push({
-        code: 'PROC001',
-        message: "PROC SQL block is missing a terminating 'QUIT;' statement.",
-        severity: 'Error',
-        position: procToken?.position,
-      });
-    }
-
-    return diagnostics;
-  },
-};
 
 export const noSelectStarRule: LintRule = {
   id: 'PROC002',
@@ -172,10 +149,36 @@ export const keywordCasingRule: LintRule = {
   },
 };
 
+export const dateSuffixRule: LintRule = {
+  id: 'PROC006',
+  name: 'SuspectedMissingDateSuffix',
+  check(ast: Statement[], tokens: Token[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const dateRegex = /^\d{1,2}[A-Za-z]{3}\d{2,4}$/;
+
+    for (const token of tokens) {
+      if (token.type === TokenType.StringLiteral) {
+        const monthStr = token.value.replace(/^\d{1,2}/, '').replace(/\d{2,4}$/, '').toUpperCase();
+        if (dateRegex.test(token.value) && months.includes(monthStr)) {
+          diagnostics.push({
+            code: 'PROC006',
+            message: `String literal '${token.value}' looks like a SAS date. Did you mean '${token.value}'d with the 'd' suffix?`,
+            severity: 'Error',
+            position: token.position,
+          });
+        }
+      }
+    }
+
+    return diagnostics;
+  },
+};
+
 export const defaultRules: LintRule[] = [
-  requireQuitRule,
   noSelectStarRule,
   explicitJoinConditionRule,
   unusedTableAliasRule,
   keywordCasingRule,
+  dateSuffixRule,
 ];

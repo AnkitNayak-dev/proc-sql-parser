@@ -83,6 +83,13 @@ export function parseProcSqlBlock(parser: Parser): ProcSqlBlock {
   if (parser.checkKeyword('QUIT') || parser.checkKeyword('EXIT')) {
     parser.advance();
     parser.consume(TokenType.Semicolon, "Expected ';' after QUIT");
+  } else {
+    parser.errors.push(
+      new ParseError(
+        "PROC SQL block is missing a terminating 'QUIT;' statement.",
+        parser.peek().position,
+      ),
+    );
   }
 
   return {
