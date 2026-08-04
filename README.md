@@ -201,40 +201,6 @@ export default function ProcSqlEditor() {
 }
 ```
 
-#### Advanced Usage (Live Error & Warning Counter)
-
-```tsx
-import { useState } from 'react';
-import Editor from '@monaco-editor/react';
-import { attachProcSql, enableProcSql } from 'proc-sql-parser';
-
-export default function ProcSqlEditorWithCounter() {
-  const [procSql, setProcSql] = useState('PROC SQL;\n  SELECT * FROM work.class;\nQUIT;');
-  const [errorCount, setErrorCount] = useState(0);
-
-  return (
-    <div>
-      <div>Active Syntax Errors: {errorCount}</div>
-      <Editor
-        height="500px"
-        language="procsql"
-        theme="vs-dark"
-        value={procSql}
-        beforeMount={enableProcSql}
-        onMount={(editor, monaco) => {
-          const instance = attachProcSql(editor, monaco, {
-            warnings: false, // Turn off warning markers
-            onDiagnostics: () => {
-              setErrorCount(instance.getErrors().length);
-            },
-          });
-        }}
-        onChange={(value) => setProcSql(value ?? '')}
-      />
-    </div>
-  );
-}
-```
 
 ### Monaco Helper Options
 
