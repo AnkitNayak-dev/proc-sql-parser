@@ -184,20 +184,43 @@ import { attachProcSql, enableProcSql } from 'proc-sql-parser';
 
 export default function ProcSqlEditor() {
   const [procSql, setProcSql] = useState('PROC SQL;\n  SELECT * FROM work.class;\nQUIT;');
+  const [errorCount, setErrorCount] = useState(0);
 
   return (
-    <Editor
-      height="500px"
-      language="procsql"
-      theme="vs-dark"
-      value={procSql}
-      beforeMount={enableProcSql}
-      onMount={(editor, monaco) => attachProcSql(editor, monaco, { warnings: false })}
-      onChange={(value) => setProcSql(value ?? '')}
-    />
+    <div>
+      <div>Errors: {errorCount}</div>
+      <Editor
+        height="500px"
+        language="procsql"
+        theme="vs-dark"
+        value={procSql}
+        beforeMount={enableProcSql}
+        onMount={(editor, monaco) => {
+          const instance = attachProcSql(editor, monaco, {
+            warnings: true, // Set to false to disable warnings
+            onDiagnostics: () => {
+              setErrorCount(instance.getErrors().length);
+            },
+          });
+        }}
+        onChange={(value) => setProcSql(value ?? '')}
+      />
+    </div>
   );
 }
 ```
+
+### Monaco Helper Options
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `warnings` | `boolean` | Set `false` to suppress warning markers and only highlight hard syntax errors (default: `true`). |
+| `onDiagnostics` | `function` | Callback triggered whenever code changes and diagnostics update. |
+
+#### Returned Helper Methods (`attachProcSql`)
+- `procSql.getErrors()`: Returns an array of active syntax error markers in the editor.
+- `procSql.getWarnings()`: Returns an array of active warning markers in the editor.
+- `procSql.dispose()`: Unbinds content change listener.
 
 To add PROC SQL to a language selector, use:
 

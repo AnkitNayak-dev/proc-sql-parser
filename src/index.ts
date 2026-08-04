@@ -31,7 +31,9 @@ const enabledMonacoInstances = new WeakSet<object>();
 
 export interface ProcSqlMonacoAttachOptions {
   warnings?: boolean;
+  onDiagnostics?: (diagnostics: Diagnostic[]) => void;
 }
+
 
 /** Parse SAS PROC SQL into an AST. Throws the first syntax error, if any. */
 export function parse(procSql: string): Statement[] {
@@ -97,10 +99,10 @@ export function enableProcSql(monacoInstance: any): void {
 export function attachProcSql(
   editorInstance: any,
   monacoInstance: any,
-  options: ProcSqlMonacoAttachOptions = {},
-): void {
+  options?: ProcSqlMonacoAttachOptions,
+) {
   enableProcSql(monacoInstance);
-  procsql.monaco.attach(editorInstance, monacoInstance, options);
+  return procsql.monaco.attach(editorInstance, monacoInstance, options);
 }
 
 /**
@@ -241,10 +243,30 @@ export const procsql = {
         }));
 
         monacoInstance.editor.setModelMarkers(model, 'procsql-validator', markers);
+
+        if (typeof options.onDiagnostics === 'function') {
+          options.onDiagnostics(visibleDiagnostics);
+        }
       };
 
-      editorInstance.onDidChangeModelContent(updateMarkers);
+      const disposable = editorInstance.onDidChangeModelContent(updateMarkers);
       updateMarkers();
+
+      return {
+        getErrors: () => {
+          const model = editorInstance.getModel();
+          if (!model) return [];
+          const markers = monacoInstance.editor.getModelMarkers({ resource: model.uri });
+          return markers.filter((m: any) => m.severity === monacoInstance.MarkerSeverity.Error);
+        },
+        getWarnings: () => {
+          const model = editorInstance.getModel();
+          if (!model) return [];
+          const markers = monacoInstance.editor.getModelMarkers({ resource: model.uri });
+          return markers.filter((m: any) => m.severity === monacoInstance.MarkerSeverity.Warning);
+        },
+        dispose: () => disposable.dispose(),
+      };
     }
   }
 };

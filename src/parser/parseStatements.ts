@@ -32,7 +32,17 @@ export function parseProcSqlBlock(parser: Parser): ProcSqlBlock {
 
   // Options up to the terminating semicolon ;
   const options: ProcSqlOption[] = [];
+  const sqlStatementKeywords = ['SELECT', 'CREATE', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER'];
   while (!parser.check(TokenType.Semicolon) && !parser.isAtEnd()) {
+    // If we hit a SQL statement keyword before finding ';', the PROC SQL semicolon is missing
+    const nextVal = parser.peek().value.toUpperCase();
+    if (sqlStatementKeywords.includes(nextVal)) {
+      throw new ParseError(
+        "Expected ';' after PROC SQL. Did you forget the semicolon?",
+        parser.peek().position,
+      );
+    }
+
     const optToken = parser.advance();
     let optValue: string | undefined;
 
@@ -155,16 +165,6 @@ export function parseSelectStatement(parser: Parser): SelectStatement {
     if (parser.matchKeyword('AS')) {
       const aliasToken = parser.advance();
       alias = aliasToken.value;
-    } else if (
-      parser.check(TokenType.Identifier) &&
-      !parser.checkKeyword('FROM') &&
-      !parser.checkKeyword('INTO') &&
-      !parser.checkKeyword('WHERE') &&
-      !parser.checkKeyword('GROUP') &&
-      !parser.checkKeyword('HAVING') &&
-      !parser.checkKeyword('ORDER')
-    ) {
-      alias = parser.advance().value;
     }
 
     // Optional SAS column properties: LABEL='...' FORMAT=...

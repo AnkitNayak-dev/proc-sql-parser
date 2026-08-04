@@ -24,7 +24,7 @@ export const requireQuitRule: LintRule = {
       diagnostics.push({
         code: 'PROC001',
         message: "PROC SQL block is missing a terminating 'QUIT;' statement.",
-        severity: 'Warning',
+        severity: 'Error',
         position: procToken?.position,
       });
     }
@@ -46,7 +46,7 @@ export const noSelectStarRule: LintRule = {
             diagnostics.push({
               code: 'PROC002',
               message: "Avoid 'SELECT *' or table star wildcard. Specify explicit column names for better query performance and maintainability.",
-              severity: 'Warning',
+              severity: 'Error',
               position: item.position || item.expr.position,
             });
           }
