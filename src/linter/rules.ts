@@ -23,7 +23,7 @@ export const noSelectStarRule: LintRule = {
             diagnostics.push({
               code: 'PROC002',
               message: "Avoid 'SELECT *' or table star wildcard. Specify explicit column names for better query performance and maintainability.",
-              severity: 'Error',
+              severity: 'Warning',
               position: item.position || item.expr.position,
             });
           }
@@ -321,6 +321,33 @@ export const functionArgCountRule: LintRule = {
   },
 };
 
+export const bareSuffixIdentifierRule: LintRule = {
+  id: 'PROC008',
+  name: 'BareSuffixIdentifier',
+  check(ast: Statement[]): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    const walker = new ASTWalker({
+      visitExpression(expr: Expression) {
+        if (expr.type === 'ColumnRefExpr' && !expr.table) {
+          const colName = expr.column.toLowerCase();
+          if (colName === 'd' || colName === 'dt' || colName === 't') {
+            diagnostics.push({
+              code: 'PROC008',
+              message: `Bare identifier '${expr.column}' looks like a date/time/datetime suffix. Did you mean to use a quoted literal, e.g. '01JAN2024'${colName}?`,
+              severity: 'Error',
+              position: expr.position,
+            });
+          }
+        }
+      },
+    });
+
+    ast.forEach((stmt) => walker.walkStatement(stmt));
+    return diagnostics;
+  },
+};
+
 export const defaultRules: LintRule[] = [
   noSelectStarRule,
   explicitJoinConditionRule,
@@ -328,4 +355,5 @@ export const defaultRules: LintRule[] = [
   keywordCasingRule,
   dateSuffixRule,
   functionArgCountRule,
+  bareSuffixIdentifierRule,
 ];

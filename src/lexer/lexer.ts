@@ -121,6 +121,13 @@ export class Lexer {
           continue;
         }
       }
+      if (ch === '^') {
+        if (this.peekNext() === '=') {
+          this.advance(); this.advance();
+          tokens.push({ type: TokenType.Operator, value: '^=', position: pos });
+          continue;
+        }
+      }
       if (['=', '+', '-', '*', '/'].includes(ch)) {
         this.advance();
         tokens.push({ type: TokenType.Operator, value: ch, position: pos });

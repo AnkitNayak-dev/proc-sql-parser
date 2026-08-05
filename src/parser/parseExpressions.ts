@@ -423,7 +423,7 @@ function StarExprType(parser: Parser, token: Token): StarExpr {
 
 function isBinaryOperatorToken(token: Token): boolean {
   if (token.type === TokenType.Operator) {
-    return ['+', '-', '*', '/', '=', '<>', '!=', '<', '>', '<=', '>=', '||'].includes(token.value);
+    return ['+', '-', '*', '/', '=', '<>', '!=', '^=', '<', '>', '<=', '>=', '||'].includes(token.value);
   }
   if (token.type === TokenType.Keyword) {
     const val = token.value.toUpperCase();
@@ -441,7 +441,7 @@ function getOperatorPrecedence(token: Token): number {
   }
   if (token.type === TokenType.Operator) {
     const val = token.value;
-    if (['=', '<>', '!=', '<', '>', '<=', '>='].includes(val)) return 4;
+    if (['=', '<>', '!=', '^=', '<', '>', '<=', '>='].includes(val)) return 4;
     if (val === '||') return 5;
     if (val === '+' || val === '-') return 6;
     if (val === '*' || val === '/') return 7;

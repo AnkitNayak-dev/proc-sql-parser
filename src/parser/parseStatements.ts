@@ -170,6 +170,15 @@ export function parseSelectStatement(parser: Parser): SelectStatement {
 
     // Optional AS alias or direct alias
     if (parser.matchKeyword('AS')) {
+      const nextToken = parser.peek();
+      const upperVal = nextToken.value.toUpperCase();
+      const reserved = ['FROM', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'INTO', 'JOIN', 'QUIT', 'EXIT', 'SELECT', 'CREATE', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'ON', 'LABEL', 'FORMAT'];
+      if (
+        nextToken.type !== TokenType.Identifier && nextToken.type !== TokenType.Keyword ||
+        reserved.includes(upperVal)
+      ) {
+        throw new ParseError("Expected a valid column alias identifier after AS", nextToken.position);
+      }
       const aliasToken = parser.advance();
       alias = aliasToken.value;
     }
@@ -369,21 +378,35 @@ function parseTableRef(parser: Parser): TableRef {
   }
 
   const firstToken = parser.advance();
+  const reservedKeywords = ['AS', 'SELECT', 'FROM', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'INTO', 'JOIN', 'QUIT', 'EXIT', 'CREATE', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'ON'];
+  if (firstToken.type === TokenType.Keyword && reservedKeywords.includes(firstToken.value.toUpperCase())) {
+    throw new ParseError(`Expected a valid table name, but found reserved keyword '${firstToken.value}'`, firstToken.position);
+  }
   let library: string | undefined;
   let tableName = firstToken.value;
 
   if (parser.match(TokenType.Dot)) {
     library = tableName;
     const tableToken = parser.advance();
+    if (tableToken.type === TokenType.Keyword && reservedKeywords.includes(tableToken.value.toUpperCase())) {
+      throw new ParseError(`Expected a valid table name, but found reserved keyword '${tableToken.value}'`, tableToken.position);
+    }
     tableName = tableToken.value;
   }
 
   let alias: string | undefined;
   if (parser.checkKeyword('AS')) {
-    if (parser.peekNext().value.toUpperCase() !== 'SELECT') {
-      parser.advance(); // consume AS keyword
-      alias = parser.advance().value; // consume alias name
+    parser.advance(); // consume AS
+    const nextToken = parser.peek();
+    const upperVal = nextToken.value.toUpperCase();
+    const reserved = ['FROM', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'INTO', 'JOIN', 'QUIT', 'EXIT', 'SELECT', 'CREATE', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'ON'];
+    if (
+      nextToken.type !== TokenType.Identifier && nextToken.type !== TokenType.Keyword ||
+      reserved.includes(upperVal)
+    ) {
+      throw new ParseError("Expected a valid table alias identifier after AS", nextToken.position);
     }
+    alias = parser.advance().value;
   } else if (
     (parser.check(TokenType.Identifier) || parser.check(TokenType.Keyword)) &&
     !parser.checkKeyword('AS') &&
